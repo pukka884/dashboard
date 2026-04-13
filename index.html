@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NISA資産チェッカー</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Segoe UI', sans-serif;
+      background: #eef2f7;
+      color: #1a202c;
+      min-height: 100vh;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+      color: #fff;
+      padding: 20px 20px 16px;
+    }
+    .header h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+    .header .subtitle {
+      font-size: 0.8rem;
+      opacity: 0.75;
+      margin-top: 4px;
+    }
+
+    .container {
+      padding: 16px 14px 40px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 12px rgba(0,0,0,0.04);
+    }
+    .card-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .date-display {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.18s;
+      background: #f8fafc;
+      min-height: 56px;
+    }
+    .input-row:focus-within {
+      border-color: #1a56db;
+      background: #fff;
+    }
+    .input-prefix {
+      padding: 0 16px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #94a3b8;
+      user-select: none;
+    }
+    #amountInput {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      padding: 16px 0;
+      font-size: 1.6rem;
+      font-weight: 700;
+      text-align: right;
+      color: #0f172a;
+      width: 100%;
+      min-width: 0;
+    }
+    #amountInput::placeholder { color: #cbd5e1; font-weight: 400; }
+    .input-suffix {
+      padding: 0 16px;
+      font-size: 1rem;
+      color: #94a3b8;
+      user-select: none;
+    }
+
+    .save-btn {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 18px;
+      background: #1a56db;
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      min-height: 56px;
+      transition: background 0.18s, transform 0.1s, opacity 0.18s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .save-btn:active { transform: scale(0.98); }
+    .save-btn:hover:not(:disabled) { background: #1741b0; }
+    .save-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    #diffDisplay {
+      display: none;
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-align: center;
+    }
+    #diffDisplay.positive { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+    #diffDisplay.negative { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
+    #diffDisplay.neutral  { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+    #statusMsg {
+      text-align: center;
+      padding: 8px 0 0;
+      font-size: 0.85rem;
+      color: #64748b;
+      min-height: 24px;
+    }
+
+    .stats-grid {
+      display: none;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .stat-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    .stat-value.neutral  { color: #334155; }
+    .stat-value.positive { color: #15803d; }
+    .stat-value.negative { color: #b91c1c; }
+
+    .chart-card { display: none; }
+    .chart-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+    }
+    .chart-container {
+      position: relative;
+      height: 240px;
+    }
+
+    @media (max-width: 400px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .stat-card:last-child { grid-column: span 2; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>NISA資産チェッカー</h1>
+  <div class="subtitle">週1回の評価額を記録して資産推移を可視化</div>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <div class="card-label">記録日</div>
+    <div class="date-display" id="todayDate"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">今週の評価額</div>
+    <div class="input-row">
+      <span class="input-prefix">¥</span>
+      <input type="text" id="amountInput" placeholder="0" inputmode="numeric" autocomplete="off">
+      <span class="input-suffix">円</span>
+    </div>
+    <button class="save-btn" id="saveBtn" onclick="handleSave()">保 存</button>
+    <div id="diffDisplay"></div>
+    <div id="statusMsg"></div>
+  </div>
+
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card">
+      <div class="stat-label">累計投資額</div>
+      <div class="stat-value neutral" id="statInvestment">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">現在評価額</div>
+      <div class="stat-value neutral" id="statAmount">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">評価益</div>
+      <div class="stat-value" id="statGain">—</div>
+    </div>
+  </div>
+
+  <div class="card chart-card" id="chartCard">
+    <div class="chart-title">月次推移グラフ</div>
+    <div class="chart-container">
+      <canvas id="myChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+// ── GAS エンドポイント ──────────────────────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz6seIn0HO4y4tWRdU09A6_UhKz7sOi5m75fO8p_fg-tV4-AyuXMGuFgPV5DnhVmWPJ/exec';
+
+// ── ユーティリティ ────────────────────────────────────
+let chartInstance = null;
+
+function fmt(n) { return Math.round(n).toLocaleString('ja-JP'); }
+function fmtSign(n) { return (n >= 0 ? '+' : '') + fmt(n); }
+function toRaw(str) { return str.replace(/[^\d]/g, ''); }
+
+// ── 日付表示 ──────────────────────────────────────────
+(function initDate() {
+  const now = new Date();
+  const y   = now.getFullYear();
+  const m   = String(now.getMonth() + 1).padStart(2, '0');
+  const d   = String(now.getDate()).padStart(2, '0');
+  const dow = ['日','月','火','水','木','金','土'][now.getDay()];
+  document.getElementById('todayDate').textContent =
+    y + '/' + m + '/' + d + '（' + dow + '）';
+})();
+
+// ── 金額入力 ─────────────────────────────────────────
+const amountInput = document.getElementById('amountInput');
+
+amountInput.addEventListener('input', function () {
+  const raw = toRaw(this.value);
+  this.dataset.raw = raw;
+  if (raw === '') { this.value = ''; return; }
+  this.value = parseInt(raw, 10).toLocaleString('ja-JP');
+});
+
+amountInput.addEventListener('focus', function () {
+  const raw = this.dataset.raw || toRaw(this.value);
+  this.value = raw;
+  this.select();
+});
+
+amountInput.addEventListener('blur', function () {
+  const raw = toRaw(this.value);
+  if (!raw) return;
+  this.dataset.raw = raw;
+  this.value = parseInt(raw, 10).toLocaleString('ja-JP');
+});
+
+function getInputAmount() {
+  const raw = amountInput.dataset.raw || toRaw(amountInput.value);
+  return raw ? parseInt(raw, 10) : NaN;
+}
+
+function setInputAmount(num) {
+  amountInput.dataset.raw = String(num);
+  amountInput.value = num.toLocaleString('ja-JP');
+}
+
+// ── UI 更新 ───────────────────────────────────────────
+function showDiff(diff) {
+  const el = document.getElementById('diffDisplay');
+  if (diff === null || diff === undefined || isNaN(diff)) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '→';
+  el.className = diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral';
+  el.textContent = '前回比 ' + fmtSign(diff) + '円 ' + arrow;
+}
+
+function updateStats(amount, gain, investment) {
+  document.getElementById('statsGrid').style.display = 'grid';
+  document.getElementById('statInvestment').textContent = fmt(investment) + '円';
+  document.getElementById('statAmount').textContent = fmt(amount) + '円';
+  const gainEl = document.getElementById('statGain');
+  gainEl.textContent = fmtSign(gain) + '円';
+  gainEl.className = 'stat-value ' + (gain > 0 ? 'positive' : gain < 0 ? 'negative' : 'neutral');
+}
+
+// ── グラフ ────────────────────────────────────────────
+function aggregateByMonth(records) {
+  const map = {};
+  records.forEach(function (r) {
+    const month = r.date.substring(0, 7);
+    map[month] = r;
+  });
+  return Object.entries(map)
+    .sort(function (a, b) { return a[0].localeCompare(b[0]); })
+    .map(function (e) { return { month: e[0], amount: e[1].amount, gain: e[1].gain }; });
+}
+
+function renderChart(records) {
+  if (!records || records.length === 0) return;
+  const monthly = aggregateByMonth(records);
+  const labels  = monthly.map(function (r) { return r.month; });
+  const amounts = monthly.map(function (r) { return r.amount; });
+  const gains   = monthly.map(function (r) { return r.gain; });
+
+  document.getElementById('chartCard').style.display = 'block';
+  const ctx = document.getElementById('myChart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: '評価額',
+          data: amounts,
+          borderColor: '#1a56db',
+          backgroundColor: 'rgba(26,86,219,0.07)',
+          fill: true, tension: 0.35,
+          pointRadius: 5, pointHoverRadius: 7, borderWidth: 2.5, yAxisID: 'y'
+        },
+        {
+          label: '評価益',
+          data: gains,
+          borderColor: '#15803d',
+          backgroundColor: 'rgba(21,128,61,0.07)',
+          fill: true, tension: 0.35,
+          pointRadius: 5, pointHoverRadius: 7, borderWidth: 2.5, yAxisID: 'y'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { font: { size: 12 }, boxWidth: 10, usePointStyle: true, padding: 16 }
+        },
+        tooltip: {
+          callbacks: {
+            label: function (ctx) { return '  ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y) + '円'; }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font: { size: 11 }, maxRotation: 45, color: '#94a3b8' },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        y: {
+          ticks: {
+            font: { size: 11 }, color: '#94a3b8',
+            callback: function (v) {
+              return v >= 10000 ? (v / 10000).toFixed(v % 10000 === 0 ? 0 : 1) + '万' : v.toLocaleString();
+            }
+          },
+          grid: { color: 'rgba(0,0,0,0.06)' }
+        }
+      }
+    }
+  });
+}
+
+// ── API 呼び出し ──────────────────────────────────────
+async function apiGet(action) {
+  const r = await fetch(GAS_URL + '?action=' + action);
+  return r.json();
+}
+
+async function apiPost(body) {
+  const r = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body)
+  });
+  return r.json();
+}
+
+// ── 保存 ─────────────────────────────────────────────
+async function handleSave() {
+  const amount = getInputAmount();
+  if (isNaN(amount) || amount <= 0) {
+    alert('評価額を入力してください。');
+    return;
+  }
+
+  const btn    = document.getElementById('saveBtn');
+  const status = document.getElementById('statusMsg');
+  btn.disabled = true;
+  btn.textContent = '保存中…';
+  status.textContent = '';
+
+  try {
+    const result = await apiPost({ action: 'saveData', amount });
+    btn.disabled = false;
+    btn.textContent = '保 存';
+    if (result && result.ok) {
+      showDiff(result.diff);
+      updateStats(amount, result.gain, result.investment);
+      status.textContent = '✓ 保存しました';
+      setTimeout(function () { status.textContent = ''; }, 3000);
+      loadData();
+    } else {
+      status.textContent = '保存に失敗しました';
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = '保 存';
+    status.textContent = '通信エラー: ' + (err.message || err);
+  }
+}
+
+// ── データ読み込み ────────────────────────────────────
+async function loadData() {
+  try {
+    const data = await apiGet('getData');
+    if (!data || !data.ok || !data.records || data.records.length === 0) return;
+
+    const latest = data.records[data.records.length - 1];
+    updateStats(latest.amount, latest.gain, data.investment);
+
+    if (data.todayAmount !== null) {
+      setInputAmount(data.todayAmount);
+      if (data.prevAmount !== null) {
+        showDiff(data.todayAmount - data.prevAmount);
+      }
+    }
+
+    renderChart(data.records);
+  } catch (err) {
+    console.error('データ取得エラー:', err);
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
