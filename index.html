@@ -465,11 +465,27 @@ function mkey(y,m){return `${y}-${p2(m)}`;}
 function daysInMonth(y,m){return new Date(y,m,0).getDate();}
 
 // ============================================================
-// GAS通信
+// GAS通信（fetch版・Vercel対応）
 // ============================================================
+const GAS_URL='https://script.google.com/macros/s/AKfycbx0TK2y-JzjdNEA8ifl16iNIapOxWDXxVmtH9CfpS2V-iMahs-7JtarsxQkybuEosmv/exec';
+
+async function gasGet(action){
+  const r=await fetch(GAS_URL+'?action='+action);
+  const d=await r.json();
+  return d.data||d;
+}
+async function gasPost(action,payload){
+  const r=await fetch(GAS_URL,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action,payload})
+  });
+  return r.json();
+}
+
 function loadState(){
-  google.script.run
-    .withSuccessHandler(data=>{
+  gasGet('getData')
+    .then(data=>{
       state=data;
       if(!state.todos)state.todos=[];
       document.getElementById('loadingOverlay').classList.add('hidden');
@@ -477,17 +493,15 @@ function loadState(){
       render();
       loadCheer();
     })
-    .withFailureHandler(e=>{
+    .catch(e=>{
       console.error(e);
       document.getElementById('loadingOverlay').classList.add('hidden');
-    })
-    .getData();
+    });
 }
 function persistState(cb){
-  google.script.run
-    .withSuccessHandler(()=>{if(cb)cb();})
-    .withFailureHandler(console.error)
-    .saveData(state);
+  gasPost('saveData',state)
+    .then(()=>{if(cb)cb();})
+    .catch(console.error);
 }
 
 // ============================================================
@@ -831,8 +845,8 @@ function runWeeklySummary(){
   document.getElementById('summaryBody').textContent='Googleドキュメントに書き出しています。少しお待ちください。';
   document.getElementById('summaryLink').style.display='none';
   document.getElementById('summaryModal').classList.add('open');
-  google.script.run
-    .withSuccessHandler(res=>{
+  gasPost('weeklySummary',{})
+    .then(res=>{
       if(res&&res.ok){
         document.getElementById('summaryTitle').textContent='✓ 書き出し完了';
         document.getElementById('summaryBody').textContent=`${res.weekLabel}のサマリーをGoogleドキュメントに追記しました。`;
@@ -843,11 +857,10 @@ function runWeeklySummary(){
         document.getElementById('summaryBody').textContent=(res&&res.error)||'書き出しに失敗しました。';
       }
     })
-    .withFailureHandler(e=>{
+    .catch(e=>{
       document.getElementById('summaryTitle').textContent='エラー';
       document.getElementById('summaryBody').textContent=String(e);
-    })
-    .manualWeeklySummary();
+    });
 }
 function closeSummaryModal(){document.getElementById('summaryModal').classList.remove('open');}
 
@@ -890,25 +903,24 @@ ${state.habits.map(h=>`- ${h}: ${cc[h]}日`).join('\n')}
 function loadCheer(force){
   if(!force&&cheerCache){document.getElementById('speechText').textContent=cheerCache;return;}
   document.getElementById('speechText').innerHTML='<span class="speech-loading">考え中にゃ...</span>';
-  google.script.run
-    .withSuccessHandler(text=>{cheerCache=text;document.getElementById('speechText').textContent=text;})
-    .withFailureHandler(()=>{document.getElementById('speechText').textContent='今日も一緒にがんばるにゃ。';})
-    .getCheerComment(buildCheerContext());
+  gasPost('getCheer',buildCheerContext())
+    .then(d=>{const text=d.text||'今日も一緒にがんばるにゃ。';cheerCache=text;document.getElementById('speechText').textContent=text;})
+    .catch(()=>{document.getElementById('speechText').textContent='今日も一緒にがんばるにゃ。';});
 }
 
 // ============================================================
 // CSV出力
 // ============================================================
 function exportCSV(){
-  google.script.run
-    .withSuccessHandler(csv=>{
+  gasGet('getCSV&year='+cy+'&month='+cm)
+    .then(d=>{
+      const csv=d.csv||'';
       const a=document.createElement('a');
       a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
       a.download=`習慣記録_${cy}年${cm}月.csv`;
       a.click();
     })
-    .withFailureHandler(console.error)
-    .getMonthCSV(cy,cm);
+    .catch(console.error);
 }
 
 // ============================================================
