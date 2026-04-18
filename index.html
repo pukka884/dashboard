@@ -206,6 +206,24 @@ body{font-family:'Nunito','Hiragino Sans',sans-serif;background:var(--bg);color:
 .bucket-del:active{color:var(--coral);background:#FFF0F0}
 .bucket-empty{text-align:center;padding:2.5rem 1.0rem;font-size:0.9375rem;color:var(--text-sub);font-weight:600}
 
+
+/* 日記ビュー */
+.diary-wrap{padding:0 0.875rem 1rem}
+.diary-date-row{display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem}
+.diary-date-label{font-size:0.8125rem;font-weight:800;color:var(--text-sub);white-space:nowrap}
+.diary-date-input{flex:1;border:none;background:var(--card);border-radius:var(--radius-sm);padding:0.625rem 0.75rem;font-size:1.0rem;font-weight:700;color:var(--text);font-family:inherit;box-shadow:var(--shadow)}
+.diary-date-input:focus{outline:none;background:var(--green-soft)}
+.diary-today-btn{background:var(--green-soft);border:none;border-radius:var(--radius-sm);padding:0.5rem 0.875rem;font-size:0.8125rem;font-weight:800;color:var(--green-dark);cursor:pointer;white-space:nowrap}
+.diary-today-btn:active{background:var(--green-mid)}
+.diary-textarea{width:100%;border:none;background:var(--card);border-radius:var(--radius);padding:1.0rem;font-size:1.0rem;font-family:inherit;font-weight:600;color:var(--text);resize:none;line-height:1.7;box-shadow:var(--shadow);min-height:16rem}
+.diary-textarea:focus{outline:none;background:#FAFFFE}
+.diary-char-count{font-size:0.75rem;color:var(--text-sub);text-align:right;margin-top:0.25rem;font-weight:600}
+.diary-save-btn{background:var(--green);border:none;border-radius:var(--radius);padding:1.0rem;font-size:1.0625rem;font-weight:800;color:#fff;width:100%;cursor:pointer;font-family:inherit;margin-top:0.625rem}
+.diary-save-btn:active{background:var(--green-dark);transform:scale(.98)}
+.diary-save-btn:disabled{background:#B0BDB8;cursor:not-allowed}
+.diary-toast{text-align:center;font-size:0.8125rem;color:var(--green-dark);font-weight:700;height:1.25rem;margin-top:0.375rem}
+.diary-loaded-badge{display:inline-flex;align-items:center;gap:0.375rem;background:var(--green-soft);border-radius:2rem;padding:0.3rem 0.75rem;font-size:0.8125rem;font-weight:700;color:var(--green-dark);margin-bottom:0.625rem}
+
 /* 一覧ビュー */
 .log-wrap{padding:0 0.875rem}
 .log-inner{overflow:hidden}
@@ -437,11 +455,32 @@ body{font-family:'Nunito','Hiragino Sans',sans-serif;background:var(--bg);color:
   </div>
 </div>
 
+<!-- 日記ビュー -->
+<div class="view" id="view-diary">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:0.875rem 1.0rem 0.5rem">
+    <span style="font-size:1.125rem;font-weight:800">📔 日記</span>
+    <button class="menu-btn" onclick="openMenu()">&#8942;</button>
+  </div>
+  <div class="diary-wrap">
+    <div class="diary-date-row">
+      <span class="diary-date-label">日付</span>
+      <input class="diary-date-input" type="date" id="diaryDate" onchange="onDiaryDateChange()">
+      <button class="diary-today-btn" onclick="setDiaryToday()">今日</button>
+    </div>
+    <div id="diaryLoadedBadge"></div>
+    <textarea class="diary-textarea" id="diaryText" oninput="updateDiaryCharCount()" placeholder="今日の出来事、考えたこと、気づきなど...&#10;&#10;音声入力したテキストをそのまま貼り付けてもOKです。"></textarea>
+    <div class="diary-char-count" id="diaryCharCount">0文字</div>
+    <button class="diary-save-btn" id="diarySaveBtn" onclick="saveDiaryEntry()">✓ 日記を保存する</button>
+    <div class="diary-toast" id="diaryToast"></div>
+  </div>
+</div>
+
 <!-- ボトムナビ -->
 <nav class="bottom-nav">
   <button class="bnav-btn active" id="bnav-home" onclick="switchTab('home')"><span class="bnav-icon">🏠</span>ホーム</button>
   <button class="bnav-btn" id="bnav-progress" onclick="switchTab('progress')"><span class="bnav-icon">📊</span>進捗</button>
   <button class="bnav-btn" id="bnav-bucket" onclick="switchTab('bucket')"><span class="bnav-icon">🎯</span>やりたい100</button>
+  <button class="bnav-btn" id="bnav-diary" onclick="switchTab('diary')"><span class="bnav-icon">📔</span>日記</button>
   <button class="bnav-btn" id="bnav-calendar" onclick="switchTab('calendar')"><span class="bnav-icon">📅</span>カレンダー</button>
   <button class="bnav-btn" id="bnav-log" onclick="switchTab('log')"><span class="bnav-icon">📋</span>一覧</button>
 </nav>
@@ -557,13 +596,14 @@ function persistState(cb){
 // タブ切替
 // ============================================================
 function switchTab(name){
-  ['home','progress','bucket','calendar','log'].forEach(n=>{
+  ['home','progress','bucket','diary','calendar','log'].forEach(n=>{
     document.getElementById('view-'+n).classList.toggle('active',n===name);
     document.getElementById('bnav-'+n).classList.toggle('active',n===name);
   });
   window.scrollTo(0,0);
   if(name==='home')renderHome();
   if(name==='bucket')renderBucketList();
+  if(name==='diary')initDiaryTab();
 }
 
 function updateLabels(){
@@ -917,6 +957,97 @@ function closeSummaryModal(){document.getElementById('summaryModal').classList.r
 // ============================================================
 // AIキャラクターの一言
 // ============================================================
+// ============================================================
+// 日記（追記モード：時刻付きで別行保存）
+// ============================================================
+let diaryCounts={};   // {dateStr: count}
+let diaryTextsCache={}; // {dateStr: [text,...]}
+
+function initDiaryTab(){
+  setDiaryToday();
+}
+
+function setDiaryToday(){
+  const today=todayStr();
+  document.getElementById('diaryDate').value=today;
+  onDiaryDateChange();
+}
+
+function onDiaryDateChange(){
+  const date=document.getElementById('diaryDate').value;
+  if(!date)return;
+  document.getElementById('diaryText').value='';
+  updateDiaryCharCount();
+  loadDiaryCount(date);
+}
+
+function loadDiaryCount(dateStr){
+  document.getElementById('diaryLoadedBadge').innerHTML='';
+  if(diaryCounts[dateStr]!==undefined){
+    showDiaryCount(dateStr, diaryCounts[dateStr]);
+    return;
+  }
+  fetch(LIFE_GAS_URL+'?action=getDiaryCount&date='+dateStr)
+    .then(r=>r.json())
+    .then(d=>{
+      const count=d.count||0;
+      diaryCounts[dateStr]=count;
+      showDiaryCount(dateStr, count);
+    })
+    .catch(()=>{});
+}
+
+function showDiaryCount(dateStr, count){
+  const el=document.getElementById('diaryLoadedBadge');
+  if(count>0){
+    el.innerHTML='<span class="diary-loaded-badge">📝 本日'+count+'件保存済み</span>';
+  } else {
+    el.innerHTML='';
+  }
+}
+
+function updateDiaryCharCount(){
+  const len=document.getElementById('diaryText').value.length;
+  document.getElementById('diaryCharCount').textContent=len.toLocaleString()+'文字';
+}
+
+function saveDiaryEntry(){
+  const date=document.getElementById('diaryDate').value;
+  const text=document.getElementById('diaryText').value.trim();
+  if(!date||!text){
+    document.getElementById('diaryToast').textContent='内容を入力してください';
+    setTimeout(()=>document.getElementById('diaryToast').textContent='',2000);
+    return;
+  }
+  const btn=document.getElementById('diarySaveBtn');
+  btn.disabled=true; btn.textContent='保存中...';
+  const now=new Date();
+  const timeStr=p2(now.getHours())+':'+p2(now.getMinutes());
+  fetch(LIFE_GAS_URL,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action:'saveDiary',date,time:timeStr,text})
+  })
+  .then(r=>r.json())
+  .then(()=>{
+    diaryCounts[date]=(diaryCounts[date]||0)+1;
+    // 猫ちゃん用キャッシュにも追加
+    if(!diaryTextsCache[date])diaryTextsCache[date]=[];
+    diaryTextsCache[date].push(text);
+    cheerCache='';
+    btn.disabled=false; btn.textContent='✓ 日記を保存する';
+    document.getElementById('diaryText').value='';
+    updateDiaryCharCount();
+    document.getElementById('diaryToast').textContent='✓ 保存しました！（'+timeStr+'）';
+    showDiaryCount(date, diaryCounts[date]);
+    setTimeout(()=>document.getElementById('diaryToast').textContent='',2500);
+  })
+  .catch(()=>{
+    btn.disabled=false; btn.textContent='✓ 日記を保存する';
+    document.getElementById('diaryToast').textContent='保存に失敗しました';
+  });
+}
+
 function buildCheerContext(){
   const logs=Object.entries(state.logs||{}).filter(([k])=>k.startsWith(mkey(cy,cm)));
   let tp=0,ts=0;const cc={};
@@ -926,6 +1057,19 @@ function buildCheerContext(){
   while(streak<365){const k=`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;if(state.logs[k])streak++;else break;d.setDate(d.getDate()-1);}
   const elapsed=new Date().getDate(),gp=getGoal('push'),gs=getGoal('squat');
   const todos=(state.todos||[]).filter(t=>!t.done).map(t=>t.text).slice(0,3);
+  // 直近7日の日記を収集
+  const recentDiaries=[];
+  for(let i=0;i<7;i++){
+    const dd=new Date(); dd.setDate(dd.getDate()-i);
+    const dk=`${dd.getFullYear()}-${p2(dd.getMonth()+1)}-${p2(dd.getDate())}`;
+    if(diaryTextsCache[dk]&&diaryTextsCache[dk].length){
+      const combined=diaryTextsCache[dk].join('\n---\n');
+      recentDiaries.push({date:dk,text:combined});
+    }
+  }
+  const diarySection=recentDiaries.length
+    ? recentDiaries.map(d=>`【${d.date}】\n${d.text.slice(0,400)}${d.text.length>400?'…':''}`).join('\n\n')
+    : '（まだ日記がありません）';
   return `あなたはTaisukeさんの毎朝話しかけてくれる猫のメンターキャラクターです。朝の一言メッセージを生成してください。
 
 【ユーザー情報】
@@ -933,6 +1077,9 @@ function buildCheerContext(){
 - 家族（妻・子3人）との時間を最優先、定時退勤が基本
 - ピアノ練習中（戦場のメリークリスマス）
 - やりたいこと100リストで毎日少しずつ人生を豊かにしている
+
+【直近の日記】
+${diarySection}
 
 【今日の未完了ToDo】
 ${todos.length?todos.map(t=>`・${t}`).join('\n'):'（なし）'}
@@ -944,8 +1091,9 @@ ${state.habits.map(h=>`- ${h}: ${cc[h]}日`).join('\n')}
 - 連続記録: ${streak}日
 
 【ルール】
-- 70〜100文字の日本語
+- 100〜150文字の日本語
 - 語尾は「〜にゃ」など猫らしい表現を1〜2回
+- 日記の内容に触れて、Taisukeさんの気持ちに寄り添う
 - ToDoがあればさりげなく触れる
 - 絵文字は使わない
 - 責めない、楽しい雰囲気で`;
