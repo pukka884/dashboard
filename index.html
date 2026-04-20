@@ -289,6 +289,43 @@ body{font-family:'Nunito','Hiragino Sans',sans-serif;background:var(--bg);color:
 .hadd-btn:active{background:var(--border)}
 .summary-link{display:block;background:var(--green);color:#fff;text-align:center;padding:0.9375rem;border-radius:var(--radius-sm);font-size:1.0rem;font-weight:800;text-decoration:none;margin:1.0rem 1.25rem 0.5rem}
 .summary-body{font-size:0.9375rem;color:var(--text-sub);line-height:1.7;padding:0 1.25rem;font-weight:600}
+/* ---- レビュービュー ---- */
+.review-wrap{padding:0 0.875rem 1rem}
+.review-tab-row{display:flex;gap:0.375rem;padding:0.75rem 0 0.625rem}
+.rtab-btn{flex:1;background:var(--card);border:2px solid var(--border);border-radius:var(--radius-sm);padding:0.625rem;font-size:0.9375rem;font-weight:800;color:var(--text-sub);cursor:pointer;font-family:inherit;transition:all .2s}
+.rtab-btn.active{background:var(--green);border-color:var(--green);color:#fff}
+.review-form-card{padding:1.0rem 1.125rem}
+.review-week-label{font-size:1.0rem;font-weight:800;color:var(--text);margin-bottom:0.875rem;display:flex;align-items:center;gap:0.5rem}
+.review-week-nav{display:flex;align-items:center;gap:0.25rem;margin-left:auto}
+.rwnbtn{background:var(--bg);border:1px solid var(--border);border-radius:0.5rem;width:2.25rem;height:2.25rem;font-size:1.125rem;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-sub)}
+.rwnbtn:active{background:var(--green-soft)}
+.review-field{margin-bottom:0.875rem}
+.review-field label{font-size:0.75rem;font-weight:800;color:var(--text-sub);letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:0.375rem}
+.review-textarea{width:100%;border:none;background:var(--bg);border-radius:var(--radius-sm);padding:0.75rem;font-size:0.9375rem;font-family:inherit;font-weight:600;color:var(--text);resize:none;line-height:1.65;min-height:4rem}
+.review-textarea:focus{outline:none;background:var(--green-soft)}
+.review-textarea.tall{min-height:5.5rem}
+.review-save-btn{background:var(--green);border:none;border-radius:var(--radius);padding:1.0rem;font-size:1.0rem;font-weight:800;color:#fff;width:100%;cursor:pointer;font-family:inherit;margin-top:0.25rem}
+.review-save-btn:active{background:var(--green-dark);transform:scale(.98)}
+.review-save-btn:disabled{background:#B0BDB8;cursor:not-allowed}
+.review-toast{text-align:center;font-size:0.8125rem;color:var(--green-dark);font-weight:700;height:1.25rem;margin-top:0.375rem}
+.past-review-list{overflow:hidden}
+.past-review-item{display:flex;align-items:center;padding:0.875rem 1.0rem;gap:0.75rem;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.past-review-item:last-child{border-bottom:none}
+.past-review-item:active{background:var(--green-soft)}
+.pri-label{font-size:0.9375rem;font-weight:800;color:var(--text);flex:1}
+.pri-preview{font-size:0.75rem;color:var(--text-sub);font-weight:600;max-width:8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pri-arrow{color:var(--text-sub);font-size:1.0rem}
+.review-detail-field{margin-bottom:0.875rem}
+.review-detail-label{font-size:0.6875rem;font-weight:800;color:var(--text-sub);letter-spacing:.07em;text-transform:uppercase;margin-bottom:0.375rem}
+.review-detail-text{font-size:0.9375rem;font-weight:600;color:var(--text);line-height:1.65;background:var(--bg);border-radius:var(--radius-sm);padding:0.75rem;white-space:pre-wrap}
+.monthly-theme-input{width:100%;border:none;background:var(--bg);border-radius:var(--radius-sm);padding:0.75rem;font-size:0.9375rem;font-family:inherit;font-weight:700;color:var(--text)}
+.monthly-theme-input:focus{outline:none;background:var(--green-soft)}
+.goal-fields{display:flex;flex-direction:column;gap:0.5rem;margin-bottom:0.875rem}
+.goal-input-row{display:flex;align-items:center;gap:0.5rem}
+.goal-num{font-size:0.75rem;font-weight:800;color:var(--text-sub);min-width:1.25rem}
+.goal-input{flex:1;border:none;background:var(--bg);border-radius:var(--radius-sm);padding:0.625rem 0.75rem;font-size:0.9375rem;font-family:inherit;font-weight:600;color:var(--text)}
+.goal-input:focus{outline:none;background:var(--green-soft)}
+.review-loaded-badge{display:inline-flex;align-items:center;gap:0.375rem;background:var(--green-soft);border-radius:2rem;padding:0.3rem 0.75rem;font-size:0.8125rem;font-weight:700;color:var(--green-dark);margin-bottom:0.625rem}
 </style>
 </head>
 <body>
@@ -492,6 +529,82 @@ body{font-family:'Nunito','Hiragino Sans',sans-serif;background:var(--bg);color:
     <div class="diary-toast" id="diaryToast"></div>
   </div>
 </div>
+<!-- レビュービュー -->
+<div class="view" id="view-review">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:0.875rem 1.0rem 0.375rem">
+    <span style="font-size:1.125rem;font-weight:800">📝 レビュー</span>
+    <button class="menu-btn" onclick="openMenu()">&#8942;</button>
+  </div>
+  <div class="review-wrap">
+    <div class="review-tab-row">
+      <button class="rtab-btn active" id="rtab-weekly" onclick="switchReviewTab('weekly')">週次レビュー</button>
+      <button class="rtab-btn" id="rtab-monthly" onclick="switchReviewTab('monthly')">月次レビュー</button>
+    </div>
+
+    <!-- 週次 -->
+    <div id="review-weekly-pane">
+      <div class="card review-form-card">
+        <div class="review-week-label">
+          <span id="weeklyLabel">読み込み中...</span>
+          <div class="review-week-nav">
+            <button class="rwnbtn" onclick="changeWeekOffset(-1)">&#8249;</button>
+            <button class="rwnbtn" onclick="changeWeekOffset(1)">&#8250;</button>
+          </div>
+        </div>
+        <div id="weeklyLoadedBadge"></div>
+        <div class="review-field"><label>今週の一言</label><textarea class="review-textarea" id="wk_oneword" placeholder="今週を一言で表すと？"></textarea></div>
+        <div class="review-field"><label>学び・気づき</label><textarea class="review-textarea tall" id="wk_learning" placeholder="今週学んだこと、気づいたことは？"></textarea></div>
+        <div class="review-field"><label>来週やること</label><textarea class="review-textarea tall" id="wk_nexttodo" placeholder="来週必ずやること・挑戦したいこと"></textarea></div>
+        <div class="review-field"><label>月次目標との照合</label><textarea class="review-textarea" id="wk_monthly_check" placeholder="今月の目標に対してどうだったか？"></textarea></div>
+        <button class="review-save-btn" id="weeklySaveBtn" onclick="saveWeeklyReview()">✓ 週次レビューを保存</button>
+        <div class="review-toast" id="weeklyToast"></div>
+      </div>
+      <div class="sec-label">過去の週次レビュー</div>
+      <div class="card past-review-list" id="pastWeeklyList"><div style="text-align:center;padding:1.5rem;font-size:0.875rem;color:var(--text-sub);font-weight:600">読み込み中...</div></div>
+    </div>
+
+    <!-- 月次 -->
+    <div id="review-monthly-pane" style="display:none">
+      <div class="card review-form-card">
+        <div class="review-week-label">
+          <span id="monthlyLabel">読み込み中...</span>
+          <div class="review-week-nav">
+            <button class="rwnbtn" onclick="changeMonthlyOffset(-1)">&#8249;</button>
+            <button class="rwnbtn" onclick="changeMonthlyOffset(1)">&#8250;</button>
+          </div>
+        </div>
+        <div id="monthlyLoadedBadge"></div>
+        <div class="review-field"><label>テーマ</label><input type="text" class="monthly-theme-input" id="mn_theme" placeholder="今月のテーマ（例：集中・挑戦）"></div>
+        <div class="review-field">
+          <label>目標（最大5つ）</label>
+          <div class="goal-fields">
+            <div class="goal-input-row"><span class="goal-num">①</span><input type="text" class="goal-input" id="mn_goal1" placeholder="目標①"></div>
+            <div class="goal-input-row"><span class="goal-num">②</span><input type="text" class="goal-input" id="mn_goal2" placeholder="目標②"></div>
+            <div class="goal-input-row"><span class="goal-num">③</span><input type="text" class="goal-input" id="mn_goal3" placeholder="目標③"></div>
+            <div class="goal-input-row"><span class="goal-num">④</span><input type="text" class="goal-input" id="mn_goal4" placeholder="目標④"></div>
+            <div class="goal-input-row"><span class="goal-num">⑤</span><input type="text" class="goal-input" id="mn_goal5" placeholder="目標⑤"></div>
+          </div>
+        </div>
+        <div class="review-field"><label>振り返り</label><textarea class="review-textarea tall" id="mn_review" placeholder="今月の振り返り、達成・未達成の理由など"></textarea></div>
+        <div class="review-field"><label>来月への持ち越し</label><textarea class="review-textarea" id="mn_carryover" placeholder="来月に持ち越すこと・続けること"></textarea></div>
+        <button class="review-save-btn" id="monthlySaveBtn" onclick="saveMonthlyReview()">✓ 月次レビューを保存</button>
+        <div class="review-toast" id="monthlyToast"></div>
+      </div>
+      <div class="sec-label">過去の月次レビュー</div>
+      <div class="card past-review-list" id="pastMonthlyList"><div style="text-align:center;padding:1.5rem;font-size:0.875rem;color:var(--text-sub);font-weight:600">読み込み中...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- レビュー詳細モーダル -->
+<div class="mbg" id="reviewDetailModal" onclick="if(event.target===this)closeReviewDetail()">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" id="reviewDetailTitle">レビュー詳細</div>
+    <div class="modal-inner" id="reviewDetailBody"></div>
+    <div style="padding:0 1.25rem 0.5rem"><button class="mbtnc" style="width:100%;padding:14px;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;border:none;font-family:inherit" onclick="closeReviewDetail()">閉じる</button></div>
+  </div>
+</div>
 
 <!-- ボトムナビ -->
 <nav class="bottom-nav">
@@ -501,6 +614,7 @@ body{font-family:'Nunito','Hiragino Sans',sans-serif;background:var(--bg);color:
   <button class="bnav-btn" id="bnav-diary" onclick="switchTab('diary')"><span class="bnav-icon">📔</span>日記</button>
   <button class="bnav-btn" id="bnav-calendar" onclick="switchTab('calendar')"><span class="bnav-icon">📅</span>カレンダー</button>
   <button class="bnav-btn" id="bnav-log" onclick="switchTab('log')"><span class="bnav-icon">📋</span>一覧</button>
+<button class="bnav-btn" id="bnav-review" onclick="switchTab('review')"><span class="bnav-icon">📝</span>レビュー</button>
 </nav>
 
 <!-- メニューシート -->
@@ -1276,6 +1390,255 @@ function setFontScale(){
 setFontScale();
 window.addEventListener('resize',setFontScale);
 window.addEventListener('load',function(){setFontScale();loadState();});
+// ============================================================
+// 人生管理GAS URL
+// ============================================================
+const LIFE_GAS_URL='https://script.google.com/macros/s/AKfycbztYHVggdTEOvJz8Bqf3dTQtufCtTlaVO2cV8EMpnKa8_FtNvziwtLX5t_HRYa5ZtBuJA/exec';
+
+async function lifeGasGet(action,params){
+  let url=LIFE_GAS_URL+'?action='+action;
+  if(params)Object.entries(params).forEach(([k,v])=>url+=`&${k}=${encodeURIComponent(v)}`);
+  const r=await fetch(url);
+  const d=await r.json();
+  return d.data!==undefined?d.data:d;
+}
+async function lifeGasPost(action,payload){
+  const r=await fetch(LIFE_GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,payload})});
+  return r.json();
+}
+
+// ============================================================
+// レビュータブ 状態
+// ============================================================
+let currentReviewTab='weekly';
+let weekOffset=0;
+let monthlyOffset=0;
+let pastWeeklyData=[];
+let pastMonthlyData=[];
+
+function getWeekInfo(offset){
+  const now=new Date();
+  const mon=new Date(now);
+  const day=now.getDay()===0?6:now.getDay()-1;
+  mon.setDate(now.getDate()-day+offset*7);
+  const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  const y=mon.getFullYear();
+  const startOfYear=new Date(y,0,1);
+  const startDay=startOfYear.getDay()===0?6:startOfYear.getDay()-1;
+  const firstMon=new Date(startOfYear);firstMon.setDate(startOfYear.getDate()-startDay);
+  const weekNum=Math.floor((mon-firstMon)/(7*24*3600*1000))+1;
+  const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  const monStr=`${mon.getFullYear()}-${p2(mon.getMonth()+1)}-${p2(mon.getDate())}`;
+  return{label:`${y}年 第${weekNum}週（${fmt(mon)}〜${fmt(sun)}）`,key:monStr};
+}
+
+function getMonthlyInfo(offset){
+  const now=new Date();
+  let y=now.getFullYear(),m=now.getMonth()+1+offset;
+  while(m>12){m-=12;y++;}while(m<1){m+=12;y--;}
+  return{label:`${y}年${m}月`,key:`${y}-${p2(m)}`};
+}
+
+// ============================================================
+// タブ切替
+// ============================================================
+function switchReviewTab(tab){
+  currentReviewTab=tab;
+  document.getElementById('rtab-weekly').classList.toggle('active',tab==='weekly');
+  document.getElementById('rtab-monthly').classList.toggle('active',tab==='monthly');
+  document.getElementById('review-weekly-pane').style.display=tab==='weekly'?'':'none';
+  document.getElementById('review-monthly-pane').style.display=tab==='monthly'?'':'none';
+  if(tab==='monthly'&&document.getElementById('monthlyLabel').textContent==='読み込み中...')loadMonthlyForm();
+}
+
+// ============================================================
+// 週次レビュー
+// ============================================================
+function changeWeekOffset(d){weekOffset+=d;loadWeeklyForm();}
+
+function loadWeeklyForm(){
+  const info=getWeekInfo(weekOffset);
+  document.getElementById('weeklyLabel').textContent=info.label;
+  ['wk_oneword','wk_learning','wk_nexttodo','wk_monthly_check'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('weeklyLoadedBadge').innerHTML='';
+  lifeGasGet('getWeeklyReview',{weekKey:info.key})
+    .then(data=>{
+      if(data&&data.weekKey){
+        document.getElementById('wk_oneword').value=data.oneword||'';
+        document.getElementById('wk_learning').value=data.learning||'';
+        document.getElementById('wk_nexttodo').value=data.nexttodo||'';
+        document.getElementById('wk_monthly_check').value=data.monthly_check||'';
+        document.getElementById('weeklyLoadedBadge').innerHTML='<span class="review-loaded-badge">✓ 保存済みデータを読み込みました</span>';
+      }
+    }).catch(()=>{});
+}
+
+function saveWeeklyReview(){
+  const info=getWeekInfo(weekOffset);
+  const btn=document.getElementById('weeklySaveBtn');
+  btn.disabled=true;btn.textContent='保存中...';
+  const payload={
+    weekKey:info.key,weekLabel:info.label,
+    oneword:document.getElementById('wk_oneword').value.trim(),
+    learning:document.getElementById('wk_learning').value.trim(),
+    nexttodo:document.getElementById('wk_nexttodo').value.trim(),
+    monthly_check:document.getElementById('wk_monthly_check').value.trim()
+  };
+  lifeGasPost('saveWeeklyReview',payload)
+    .then(()=>{
+      btn.disabled=false;btn.textContent='✓ 週次レビューを保存';
+      document.getElementById('weeklyToast').textContent='✓ 保存しました！';
+      setTimeout(()=>document.getElementById('weeklyToast').textContent='',2500);
+      document.getElementById('weeklyLoadedBadge').innerHTML='<span class="review-loaded-badge">✓ 保存済み</span>';
+      loadPastWeeklyList();
+    })
+    .catch(()=>{
+      btn.disabled=false;btn.textContent='✓ 週次レビューを保存';
+      document.getElementById('weeklyToast').textContent='❌ 保存に失敗しました';
+      setTimeout(()=>document.getElementById('weeklyToast').textContent='',2500);
+    });
+}
+
+function loadPastWeeklyList(){
+  lifeGasGet('getWeeklyReviews')
+    .then(data=>{
+      pastWeeklyData=Array.isArray(data)?data:[];
+      renderPastWeeklyList();
+    })
+    .catch(()=>{document.getElementById('pastWeeklyList').innerHTML='<div style="text-align:center;padding:1.5rem;font-size:0.875rem;color:var(--text-sub);font-weight:600">読み込みに失敗しました</div>';});
+}
+
+function renderPastWeeklyList(){
+  const el=document.getElementById('pastWeeklyList');
+  if(!pastWeeklyData.length){el.innerHTML='<div style="text-align:center;padding:1.5rem;font-size:0.875rem;color:var(--text-sub);font-weight:600">まだレビューがありません</div>';return;}
+  el.innerHTML=[...pastWeeklyData].reverse().map((d,i)=>`
+    <div class="past-review-item" onclick="openWeeklyDetail(${pastWeeklyData.length-1-i})">
+      <div style="flex:1"><div class="pri-label">${d.weekLabel||d.weekKey}</div><div class="pri-preview">${d.oneword||'（一言なし）'}</div></div>
+      <span class="pri-arrow">›</span>
+    </div>`).join('');
+}
+
+function openWeeklyDetail(idx){
+  const d=pastWeeklyData[idx];if(!d)return;
+  document.getElementById('reviewDetailTitle').textContent=d.weekLabel||d.weekKey;
+  const fields=[['今週の一言',d.oneword],['学び・気づき',d.learning],['来週やること',d.nexttodo],['月次目標との照合',d.monthly_check]];
+  document.getElementById('reviewDetailBody').innerHTML=fields.filter(([,v])=>v)
+    .map(([label,val])=>`<div class="review-detail-field"><div class="review-detail-label">${label}</div><div class="review-detail-text">${escHtml(val)}</div></div>`).join('');
+  document.getElementById('reviewDetailModal').classList.add('open');
+}
+
+// ============================================================
+// 月次レビュー
+// ============================================================
+function changeMonthlyOffset(d){monthlyOffset+=d;loadMonthlyForm();}
+
+function loadMonthlyForm(){
+  const info=getMonthlyInfo(monthlyOffset);
+  document.getElementById('monthlyLabel').textContent=info.label;
+  document.getElementById('mn_theme').value='';
+  [1,2,3,4,5].forEach(n=>document.getElementById(`mn_goal${n}`).value='');
+  document.getElementById('mn_review').value='';
+  document.getElementById('mn_carryover').value='';
+  document.getElementById('monthlyLoadedBadge').innerHTML='';
+  lifeGasGet('getMonthlyReview',{monthKey:info.key})
+    .then(data=>{
+      if(data&&data.monthKey){
+        document.getElementById('mn_theme').value=data.theme||'';
+        [1,2,3,4,5].forEach(n=>document.getElementById(`mn_goal${n}`).value=data[`goal${n}`]||'');
+        document.getElementById('mn_review').value=data.review||'';
+        document.getElementById('mn_carryover').value=data.carryover||'';
+        document.getElementById('monthlyLoadedBadge').innerHTML='<span class="review-loaded-badge">✓ 保存済みデータを読み込みました</span>';
+      }
+    }).catch(()=>{});
+}
+
+function saveMonthlyReview(){
+  const info=getMonthlyInfo(monthlyOffset);
+  const btn=document.getElementById('monthlySaveBtn');
+  btn.disabled=true;btn.textContent='保存中...';
+  const payload={
+    monthKey:info.key,monthLabel:info.label,
+    theme:document.getElementById('mn_theme').value.trim(),
+    goal1:document.getElementById('mn_goal1').value.trim(),
+    goal2:document.getElementById('mn_goal2').value.trim(),
+    goal3:document.getElementById('mn_goal3').value.trim(),
+    goal4:document.getElementById('mn_goal4').value.trim(),
+    goal5:document.getElementById('mn_goal5').value.trim(),
+    review:document.getElementById('mn_review').value.trim(),
+    carryover:document.getElementById('mn_carryover').value.trim()
+  };
+  lifeGasPost('saveMonthlyReview',payload)
+    .then(()=>{
+      btn.disabled=false;btn.textContent='✓ 月次レビューを保存';
+      document.getElementById('monthlyToast').textContent='✓ 保存しました！';
+      setTimeout(()=>document.getElementById('monthlyToast').textContent='',2500);
+      document.getElementById('monthlyLoadedBadge').innerHTML='<span class="review-loaded-badge">✓ 保存済み</span>';
+      loadPastMonthlyList();
+    })
+    .catch(()=>{
+      btn.disabled=false;btn.textContent='✓ 月次レビューを保存';
+      document.getElementById('monthlyToast').textContent='❌ 保存に失敗しました';
+      setTimeout(()=>document.getElementById('monthlyToast').textContent='',2500);
+    });
+}
+
+function loadPastMonthlyList(){
+  lifeGasGet('getMonthlyReviews')
+    .then(data=>{
+      pastMonthlyData=Array.isArray(data)?data:[];
+      renderPastMonthlyList();
+    })
+    .catch(()=>{document.getElementById('pastMonthlyList').innerHTML='<div style="text-align:center;padding:1.5rem;font-size:0.875rem;color:var(--text-sub);font-weight:600">読み込みに失敗しました</div>';});
+}
+
+function renderPastMonthlyList(){
+  const el=document.getElementById('pastMonthlyList');
+  if(!pastMonthlyData.length){el.innerHTML='<div style="text-align:center;padding:1.5rem;font-size:0.875rem;color:var(--text-sub);font-weight:600">まだレビューがありません</div>';return;}
+  el.innerHTML=[...pastMonthlyData].reverse().map((d,i)=>`
+    <div class="past-review-item" onclick="openMonthlyDetail(${pastMonthlyData.length-1-i})">
+      <div style="flex:1"><div class="pri-label">${d.monthLabel||d.monthKey}</div><div class="pri-preview">${d.theme||'（テーマなし）'}</div></div>
+      <span class="pri-arrow">›</span>
+    </div>`).join('');
+}
+
+function openMonthlyDetail(idx){
+  const d=pastMonthlyData[idx];if(!d)return;
+  document.getElementById('reviewDetailTitle').textContent=d.monthLabel||d.monthKey;
+  const goals=[1,2,3,4,5].map(n=>d[`goal${n}`]).filter(Boolean);
+  let html='';
+  if(d.theme)html+=`<div class="review-detail-field"><div class="review-detail-label">テーマ</div><div class="review-detail-text">${escHtml(d.theme)}</div></div>`;
+  if(goals.length)html+=`<div class="review-detail-field"><div class="review-detail-label">目標</div><div class="review-detail-text">${goals.map((g,i)=>`${['①','②','③','④','⑤'][i]} ${escHtml(g)}`).join('\n')}</div></div>`;
+  if(d.review)html+=`<div class="review-detail-field"><div class="review-detail-label">振り返り</div><div class="review-detail-text">${escHtml(d.review)}</div></div>`;
+  if(d.carryover)html+=`<div class="review-detail-field"><div class="review-detail-label">来月への持ち越し</div><div class="review-detail-text">${escHtml(d.carryover)}</div></div>`;
+  document.getElementById('reviewDetailBody').innerHTML=html||'<div style="color:var(--text-sub);padding:1rem">データがありません</div>';
+  document.getElementById('reviewDetailModal').classList.add('open');
+}
+
+function closeReviewDetail(){document.getElementById('reviewDetailModal').classList.remove('open');}
+
+// ============================================================
+// switchTab を拡張（'review' を追加）
+// ============================================================
+const _origSwitchTab=switchTab;
+switchTab=function(name){
+  ['home','progress','bucket','diary','calendar','log','review'].forEach(n=>{
+    const view=document.getElementById('view-'+n);
+    const btn=document.getElementById('bnav-'+n);
+    if(view)view.classList.toggle('active',n===name);
+    if(btn)btn.classList.toggle('active',n===name);
+  });
+  window.scrollTo(0,0);
+  if(name==='home')renderHome();
+  if(name==='bucket')renderBucketList();
+  if(name==='diary')initDiaryTab();
+  if(name==='review')initReviewTab();
+};
+
+function initReviewTab(){
+  loadWeeklyForm();
+  loadPastWeeklyList();
+  loadPastMonthlyList();
+}
 </script>
 </body>
 </html>
