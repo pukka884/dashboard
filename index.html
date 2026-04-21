@@ -377,7 +377,12 @@ body{font-family:'Nunito','Hiragino Sans',sans-serif;background:var(--bg);color:
         <button class="speech-refresh" onclick="loadCheer(true)">↻ もう一度</button>
       </div>
     </div>
-
+<!-- 今週の予定 -->
+<div class="sec-label">今週の予定</div>
+<div class="card" id="calendarCard" style="overflow:hidden">
+  <div id="calendarEventList" style="padding:0.75rem 1rem;font-size:0.875rem;color:var(--text-sub);font-weight:600">読み込み中...</div>
+</div>
+    
     <!-- 今日の引用 -->
     <div class="sec-label">今日の言葉</div>
     <div class="card quote-card" id="quoteCard">
@@ -713,6 +718,7 @@ function loadState(){
       render();
       loadCheer();
       loadQuotes();
+    loadCalendarEvents();
     })
     .catch(e=>{
       console.error(e);
@@ -1636,6 +1642,64 @@ function initReviewTab(){
   loadWeeklyForm();
   loadPastWeeklyList();
   loadPastMonthlyList();
+}
+// ============================================================
+// Googleカレンダー 今週の予定
+// ============================================================
+const DAY_NAMES = ['日','月','火','水','木','金','土'];
+
+function loadCalendarEvents() {
+  lifeGasGet('getCalendarEvents')
+    .then(data => {
+      const events = data.events || [];
+      renderCalendarEvents(events);
+    })
+    .catch(() => {
+      document.getElementById('calendarEventList').textContent = '予定を取得できませんでした';
+    });
+}
+
+function renderCalendarEvents(events) {
+  const el = document.getElementById('calendarEventList');
+  if (!events.length) {
+    el.innerHTML = '<div style="padding:0.5rem 0;color:var(--text-sub);font-size:0.875rem;font-weight:600">今週の予定はありません</div>';
+    return;
+  }
+
+  // 日付ごとにグループ化
+  const groups = {};
+  events.forEach(ev => {
+    if (!groups[ev.date]) groups[ev.date] = [];
+    groups[ev.date].push(ev);
+  });
+
+  let html = '';
+  Object.keys(groups).sort().forEach(date => {
+    const d = new Date(date + 'T00:00:00');
+    const dow = DAY_NAMES[d.getDay()];
+    const today = todayStr();
+    const isToday = date === today;
+    const mm = d.getMonth() + 1;
+    const dd = d.getDate();
+
+    html += `<div style="padding:0.625rem 1rem 0.25rem;display:flex;align-items:center;gap:0.5rem">
+      <span style="font-size:0.8125rem;font-weight:800;color:${isToday ? 'var(--green)' : 'var(--text-sub)'}">
+        ${mm}/${dd}（${dow}）${isToday ? ' 🟢' : ''}
+      </span>
+    </div>`;
+
+    groups[date].forEach(ev => {
+      const timeStr = ev.isAllDay ? '終日' : `${ev.startTime}〜${ev.endTime}`;
+      const dotColor = ev.color || '#4ECDC4';
+      html += `<div style="display:flex;align-items:center;gap:0.625rem;padding:0.4rem 1rem 0.4rem 1.25rem;border-bottom:1px solid var(--border)">
+        <span style="width:0.5rem;height:0.5rem;border-radius:50%;background:${dotColor};flex-shrink:0;display:inline-block"></span>
+        <span style="font-size:0.8125rem;color:var(--text-sub);font-weight:700;min-width:5rem;flex-shrink:0">${timeStr}</span>
+        <span style="font-size:0.9375rem;font-weight:700;color:var(--text);flex:1">${escHtml(ev.title)}</span>
+      </div>`;
+    });
+  });
+
+  el.innerHTML = html;
 }
 </script>
 </body>
