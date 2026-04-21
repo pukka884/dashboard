@@ -716,7 +716,7 @@ function loadState(){
       document.getElementById('loadingOverlay').classList.add('hidden');
       renderHome();
       render();
-      loadCheer();
+      loadMentorContext().then(() => loadCheer());
       loadQuotes();
     loadCalendarEvents();
     })
@@ -1187,56 +1187,7 @@ function saveDiaryEntry(){
   });
 }
 
-function buildCheerContext(){
-  const logs=Object.entries(state.logs||{}).filter(([k])=>k.startsWith(mkey(cy,cm)));
-  let tp=0,ts=0;const cc={};
-  state.habits.forEach(h=>cc[h]=0);
-  logs.forEach(([,v])=>{tp+=(v.push||0);ts+=(v.squat||0);state.habits.forEach(h=>{if(v.checks&&v.checks[h])cc[h]++;});});
-  let streak=0;const d=new Date();
-  while(streak<365){const k=`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;if(state.logs[k])streak++;else break;d.setDate(d.getDate()-1);}
-  const elapsed=new Date().getDate(),gp=getGoal('push'),gs=getGoal('squat');
-  const todos=(state.todos||[]).filter(t=>!t.done).map(t=>t.text).slice(0,3);
-  // 直近7日の日記を収集
-  const recentDiaries=[];
-  for(let i=0;i<7;i++){
-    const dd=new Date(); dd.setDate(dd.getDate()-i);
-    const dk=`${dd.getFullYear()}-${p2(dd.getMonth()+1)}-${p2(dd.getDate())}`;
-    if(diaryTextsCache[dk]&&diaryTextsCache[dk].length){
-      const combined=diaryTextsCache[dk].join('\n---\n');
-      recentDiaries.push({date:dk,text:combined});
-    }
-  }
-  const diarySection=recentDiaries.length
-    ? recentDiaries.map(d=>`【${d.date}】\n${d.text.slice(0,400)}${d.text.length>400?'…':''}`).join('\n\n')
-    : '（まだ日記がありません）';
-  return `あなたはTaisukeさんの毎朝話しかけてくれる猫のメンターキャラクターです。朝の一言メッセージを生成してください。
 
-【ユーザー情報】
-- 小学校の特別支援学級の担任（和歌山県）
-- 家族（妻・子3人）との時間を最優先、定時退勤が基本
-- ピアノ練習中（戦場のメリークリスマス）
-- やりたいこと100リストで毎日少しずつ人生を豊かにしている
-
-【直近の日記】
-${diarySection}
-
-【今日の未完了ToDo】
-${todos.length?todos.map(t=>`・${t}`).join('\n'):'（なし）'}
-
-【今月の進捗（${cy}年${cm}月 ${elapsed}日経過）】
-- 腕立て: ${tp}回 / 目標${gp}回（${Math.round(tp/gp*100)}%）
-- スクワット: ${ts}回 / 目標${gs}回（${Math.round(ts/gs*100)}%）
-${state.habits.map(h=>`- ${h}: ${cc[h]}日`).join('\n')}
-- 連続記録: ${streak}日
-
-【ルール】
-- 100〜150文字の日本語
-- 語尾は「〜にゃ」など猫らしい表現を1〜2回
-- 日記の内容に触れて、Taisukeさんの気持ちに寄り添う
-- ToDoがあればさりげなく触れる
-- 絵文字は使わない
-- 責めない、楽しい雰囲気で`;
-}
 // ============================================================
 // 読書引用
 // ============================================================
@@ -1275,12 +1226,71 @@ function showNextQuote(){
     q.title?(q.author?`『${q.title}』 ${q.author}`:`『${q.title}』`):'';
 }
 
-function loadCheer(force){
-  if(!force&&cheerCache){document.getElementById('speechText').textContent=cheerCache;return;}
-  document.getElementById('speechText').innerHTML='<span class="speech-loading">考え中にゃ...</span>';
-  gasPost('getCheer',buildCheerContext())
-    .then(d=>{const text=d.text||'今日も一緒にがんばるにゃ。';cheerCache=text;document.getElementById('speechText').textContent=text;})
-    .catch(()=>{document.getElementById('speechText').textContent='今日も一緒にがんばるにゃ。';});
+// ============================================================
+// AIキャラクターの一言（強化版）
+// ============================================================
+let cheerMentorData = null;
+
+async function loadMentorContext() {
+  try {
+    const [diaryRes, bucketRes] = await Promise.all([
+      fetch(LIFE_GAS_URL + '?action=getDiaries&days=7').then(r => r.json()),
+      fetch(LIFE_GAS_URL + '?action=getBucketList').then(r => r.json())
+    ]);
+    const diaries = diaryRes.diaries || [];
+    const bucketUndone = (bucketRes.items || [])
+      .filter(i => !i.achieved)
+      .map(i => i.content)
+      .slice(0, 10);
+    cheerMentorData = { diaries, bucketUndone };
+  } catch (e) {
+    cheerMentorData = { diaries: [], bucketUndone: [] };
+  }
+}
+
+function buildCheerPayload() {
+  const todos = (state.todos || [])
+    .filter(t => !t.done)
+    .map(t => t.text)
+    .slice(0, 5);
+
+  const quotes = [];
+  if (allQuotes.length) {
+    const shuffled = [...allQuotes].sort(() => Math.random() - 0.5);
+    quotes.push(...shuffled.slice(0, 2).map(q => ({ text: q.text, title: q.title })));
+  }
+
+  return {
+    today: todayStr(),
+    diaries: (cheerMentorData || {}).diaries || [],
+    bucketUndone: (cheerMentorData || {}).bucketUndone || [],
+    todos,
+    quotes
+  };
+}
+
+function loadCheer(force) {
+  const today = todayStr();
+  const cacheKey = 'cheerCache_' + today;
+  const cached = sessionStorage.getItem(cacheKey);
+  if (!force && cached) {
+    document.getElementById('speechText').textContent = cached;
+    return;
+  }
+
+  document.getElementById('speechText').innerHTML =
+    '<span class="speech-loading">考え中にゃ...</span>';
+
+  lifeGasPost('getCheer', buildCheerPayload())
+    .then(d => {
+      const text = d.text || '今日も丁寧に見ていこうにゃ。';
+      document.getElementById('speechText').textContent = text;
+      if (!force) sessionStorage.setItem(cacheKey, text);
+    })
+    .catch(() => {
+      document.getElementById('speechText').textContent =
+        '今日も丁寧に見ていこうにゃ。';
+    });
 }
 
 // ============================================================
