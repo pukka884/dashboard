@@ -1651,7 +1651,7 @@ const DAY_NAMES = ['日','月','火','水','木','金','土'];
 function loadCalendarEvents() {
   lifeGasGet('getCalendarEvents')
     .then(data => {
-      const events = data.events || [];
+      const events = (data.events || data) || [];
       renderCalendarEvents(events);
     })
     .catch(() => {
