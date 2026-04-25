@@ -972,8 +972,8 @@ function renderDayDetail(){
   state.habits.forEach(h=>rows+=mkRow(log.checks&&log.checks[h],h));
   wrap.innerHTML=`<div class="card day-detail-card">
     <div class="day-detail-title">${parseInt(pts[1])}月${parseInt(pts[2])}日の記録</div>
-    ${rows}
     <button class="edit-from-cal" onclick="openDayEditModal(selectedDate)">✏️ この日を編集する</button>
+    ${rows}
   </div>`;
 }
 function openDayEditModal(date){
