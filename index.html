@@ -1713,6 +1713,15 @@ function loadCalendarEvents() {
 
 function renderCalendarEvents(events) {
   const el = document.getElementById('calendarEventList');
+  const now = new Date();
+const todayDateStr = todayStr();
+const currentTime = p2(now.getHours()) + ':' + p2(now.getMinutes());
+events = events.filter(ev => {
+  if (ev.date > todayDateStr) return true;
+  if (ev.date < todayDateStr) return false;
+  if (ev.isAllDay) return true;
+  return (ev.endTime || '23:59') >= currentTime;
+});
   if (!events.length) {
     el.innerHTML = '<div style="padding:0.5rem 0;color:var(--text-sub);font-size:0.875rem;font-weight:600">今週の予定はありません</div>';
     return;
