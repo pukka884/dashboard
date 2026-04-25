@@ -1218,6 +1218,7 @@ function saveDiaryEntry(){
     btn.disabled=false; btn.textContent='✓ 日記を保存する';
     document.getElementById('diaryText').value='';
     updateDiaryCharCount();
+    sessionStorage.removeItem('cheerCache_'+date);
     document.getElementById('diaryToast').textContent='✓ 保存しました！（'+timeStr+'）';
     showDiaryCount(date, diaryCounts[date]);
     setTimeout(()=>document.getElementById('diaryToast').textContent='',2500);
