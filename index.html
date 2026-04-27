@@ -1371,10 +1371,9 @@ async function loadMentorContext() {
 
 function buildCheerPayload() {
   const todos = (state.todos || [])
-    .filter(t => !t.done)
-    .map(t => t.text)
-    .slice(0, 5);
-
+  .filter(t => !t.done && t.thisWeek !== false)
+  .map(t => t.text)
+  .slice(0, 5);
   const quotes = [];
   if (allQuotes.length) {
     const shuffled = [...allQuotes].sort(() => Math.random() - 0.5);
