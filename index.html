@@ -112,7 +112,14 @@ body{font-family:'Nunito','Hiragino Sans',sans-serif;background:var(--bg);color:
 .todo-del{background:none;border:1px solid var(--border);border-radius:0.5rem;padding:0.3125rem 0.5rem;font-size:0.75rem;color:#C5CECC;cursor:pointer}
 .todo-del:active{color:var(--coral);background:#FFF0F0}
 .todo-empty{text-align:center;padding:1.5rem 1.0rem;font-size:0.875rem;color:var(--text-sub);font-weight:600}
-
+/* ToDo タブ */
+.todo-tab-row{display:flex;gap:0;border-bottom:1px solid var(--border)}
+.todo-tab-btn{flex:1;background:none;border:none;padding:0.75rem 0.5rem;font-size:0.8125rem;font-weight:800;color:var(--text-sub);cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:0.375rem}
+.todo-tab-btn.active{color:var(--green);border-bottom-color:var(--green)}
+.todo-tab-badge{background:var(--green-soft);color:var(--green-dark);border-radius:2rem;padding:0.1rem 0.5rem;font-size:0.75rem;font-weight:800;min-width:1.25rem;text-align:center}
+.todo-tab-btn:not(.active) .todo-tab-badge{background:var(--border);color:var(--text-sub)}
+.todo-move-btn{background:none;border:1px solid var(--border);border-radius:0.5rem;padding:0.25rem 0.5rem;font-size:0.6875rem;color:var(--text-sub);cursor:pointer;white-space:nowrap;font-weight:700;flex-shrink:0}
+.todo-move-btn:active{background:var(--green-soft);color:var(--green-dark)}
 /* 保存ボタン */
 .save-btn{background:var(--green);border:none;border-radius:var(--radius);padding:1.0rem;font-size:1.0625rem;font-weight:800;color:#fff;width:100%;cursor:pointer;letter-spacing:.02em;font-family:inherit}
 .save-btn:active{background:var(--green-dark);transform:scale(.98)}
@@ -423,14 +430,26 @@ body{font-family:'Nunito','Hiragino Sans',sans-serif;background:var(--bg);color:
     </div>
 
     <!-- ToDo -->
-    <div class="sec-label">ToDo</div>
-    <div class="card" style="overflow:hidden">
-      <div class="todo-input-row">
-        <input class="todo-input" type="text" id="todoInput" placeholder="やることを追加..." onkeydown="if(event.key==='Enter')addTodo()">
-        <button class="todo-add-btn" onclick="addTodo()">＋</button>
-      </div>
-      <div id="todoList"></div>
-    </div>
+<div class="sec-label">ToDo</div>
+<div class="card" style="overflow:hidden">
+  <div class="todo-tab-row">
+    <button class="todo-tab-btn active" id="todoTab1" onclick="switchTodoTab(1)">
+      今週やる <span class="todo-tab-badge" id="todoBadge1">0</span>
+    </button>
+    <button class="todo-tab-btn" id="todoTab2" onclick="switchTodoTab(2)">
+      あとでいい <span class="todo-tab-badge" id="todoBadge2">0</span>
+    </button>
+  </div>
+  <div class="todo-input-row">
+    <input class="todo-input" type="text" id="todoInput" placeholder="やることを追加..." onkeydown="if(event.key==='Enter')addTodo()">
+    <button class="todo-add-btn" onclick="addTodo()">＋</button>
+  </div>
+  <div style="display:flex;gap:0.5rem;padding:0 1rem 0.625rem">
+    <button onclick="addTodoThisWeek()" id="todoQuickWeek" style="flex:1;padding:0.5rem;border:1.5px solid var(--green);border-radius:0.625rem;background:var(--green-soft);color:var(--green-dark);font-size:0.8125rem;font-weight:800;cursor:pointer;font-family:inherit">今週やる</button>
+    <button onclick="addTodoLater()" id="todoQuickLater" style="flex:1;padding:0.5rem;border:1.5px solid var(--border);border-radius:0.625rem;background:var(--bg);color:var(--text-sub);font-size:0.8125rem;font-weight:800;cursor:pointer;font-family:inherit">あとでいい</button>
+  </div>
+  <div id="todoList"></div>
+</div>
 
     <!-- 保存 -->
     <div style="padding:0.25rem 0 0.5rem">
@@ -804,41 +823,101 @@ function toggleHabitCheck(enc){
 }
 
 // ============================================================
-// ToDo
 // ============================================================
-function renderTodos(){
-  const el=document.getElementById('todoList');
-  const todos=state.todos||[];
-  if(!todos.length){el.innerHTML=`<div class="todo-empty">タスクなし 👍</div>`;return;}
-  el.innerHTML=todos.map((t,i)=>`
-    <div class="todo-row ${t.done?'done-todo':''}" onclick="toggleTodo(${i})">
+// ToDo（今週やる／あとでいい 2択）
+// ============================================================
+let currentTodoTab = 1;
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function switchTodoTab(n) {
+  currentTodoTab = n;
+  [1, 2].forEach(i => {
+    document.getElementById('todoTab' + i).classList.toggle('active', i === n);
+  });
+  renderTodos();
+}
+
+function updateTodoBadges() {
+  const todos = state.todos || [];
+  // 後方互換：thisWeekが未定義のものは今週やるとして扱う
+  const week = todos.filter(t => !t.done && t.thisWeek !== false).length;
+  const later = todos.filter(t => !t.done && t.thisWeek === false).length;
+  document.getElementById('todoBadge1').textContent = week;
+  document.getElementById('todoBadge2').textContent = later;
+}
+
+function renderTodos() {
+  const el = document.getElementById('todoList');
+  const todos = state.todos || [];
+  const isWeek = currentTodoTab === 1;
+  // 後方互換：thisWeekが未定義→今週やる扱い
+  const items = todos.filter(t => isWeek ? t.thisWeek !== false : t.thisWeek === false);
+
+  if (!items.length) {
+    el.innerHTML = `<div class="todo-empty">${isWeek ? '今週のタスクなし 👍' : 'あとでやるタスクなし'}</div>`;
+    updateTodoBadges();
+    return;
+  }
+
+  el.innerHTML = items.map((t, _) => {
+    const i = todos.indexOf(t);
+    const moveLabel = isWeek ? '→後で' : '→今週';
+    return `<div class="todo-row ${t.done ? 'done-todo' : ''}" onclick="toggleTodo(${i})">
       <div class="todo-check"><div class="todo-check-mark"></div></div>
       <span class="todo-text">${escHtml(t.text)}</span>
+      <button class="todo-move-btn" onclick="event.stopPropagation();moveTodo(${i})">${moveLabel}</button>
       <button class="todo-del" onclick="event.stopPropagation();deleteTodo(${i})">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+
+  updateTodoBadges();
 }
-function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function addTodo(){
-  const inp=document.getElementById('todoInput');
-  const text=inp.value.trim();
-  if(!text)return;
-  if(!state.todos)state.todos=[];
-  state.todos.push({text,done:false});
-  inp.value='';
-  renderTodos();
+
+function addTodoThisWeek() {
+  const inp = document.getElementById('todoInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!state.todos) state.todos = [];
+  state.todos.push({ text, done: false, thisWeek: true });
+  inp.value = '';
+  currentTodoTab = 1;
+  switchTodoTab(1);
   persistState();
 }
-function toggleTodo(i){
-  state.todos[i].done=!state.todos[i].done;
-  renderTodos();
+
+function addTodoLater() {
+  const inp = document.getElementById('todoInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  if (!state.todos) state.todos = [];
+  state.todos.push({ text, done: false, thisWeek: false });
+  inp.value = '';
+  currentTodoTab = 2;
+  switchTodoTab(2);
   persistState();
 }
-function deleteTodo(i){
-  state.todos.splice(i,1);
+
+// Enterキー用（デフォルトは今週やる）
+function addTodo() {
+  addTodoThisWeek();
+}
+
+function toggleTodo(i) {
+  state.todos[i].done = !state.todos[i].done;
   renderTodos();
   persistState();
 }
 
+function moveTodo(i) {
+  state.todos[i].thisWeek = !state.todos[i].thisWeek;
+  renderTodos();
+  persistState();
+}
+
+function deleteTodo(i) {
+  state.todos.splice(i, 1);
+  renderTodos();
+  persistState();
+}
 // ============================================================
 // 筋トレ入力
 // ============================================================
